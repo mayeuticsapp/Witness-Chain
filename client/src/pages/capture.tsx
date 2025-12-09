@@ -14,19 +14,24 @@ import {
   UploadCloud,
   X,
   ShieldCheck,
-  Zap
+  Zap,
+  AlertTriangle
 } from "lucide-react";
-import { addProof, Manifest } from "@/lib/mock-data";
-import { v4 as uuidv4 } from "uuid";
+import { useCreateProof } from "@/lib/hooks";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Capture() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const createProof = useCreateProof();
   const [step, setStep] = useState<"capture" | "details" | "uploading" | "complete">("capture");
   const [mediaType, setMediaType] = useState<"photo" | "audio" | "note">("photo");
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedFile, setCapturedFile] = useState<File | null>(null);
   const [locationData, setLocationData] = useState<{lat: number, lng: number} | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [createdProofId, setCreatedProofId] = useState<string>("");
 
   // Form State
   const [client, setClient] = useState("");
@@ -76,58 +81,93 @@ export default function Capture() {
       canvas.width = videoRef.current.videoWidth;
       canvas.height = videoRef.current.videoHeight;
       canvas.getContext("2d")?.drawImage(videoRef.current, 0, 0);
-      setCapturedImage(canvas.toDataURL("image/jpeg"));
+      const imageDataUrl = canvas.toDataURL("image/jpeg");
+      setCapturedImage(imageDataUrl);
+      
+      // Convert data URL to File
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const file = new File([blob], `evidence_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          setCapturedFile(file);
+        }
+      }, 'image/jpeg');
+      
       stopCamera();
     } else {
       // Fallback mock image
       setCapturedImage("https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=2070&auto=format&fit=crop");
+      
+      // Create a mock file for fallback
+      fetch("https://images.unsplash.com/photo-1581092160562-40aa08e78837?q=80&w=800&auto=format&fit=crop")
+        .then(res => res.blob())
+        .then(blob => {
+          const file = new File([blob], `evidence_${Date.now()}.jpg`, { type: 'image/jpeg' });
+          setCapturedFile(file);
+        });
     }
   };
 
   const handleSubmit = async () => {
+    if (!capturedFile) {
+      toast({
+        title: "Errore",
+        description: "Nessun file acquisito. Riprova.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setStep("uploading");
     
-    // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 2500));
-
-    const newProof: Manifest = {
-      proof_id: uuidv4(),
-      protocol_version: "1.0.0",
-      status: "processing",
-      actor: {
-        user_id: "TECH-DEMO",
-        role: "technician",
-        device_id: "BROWSER-CLIENT"
-      },
-      context: {
-        intervention_id: `INT-${Math.floor(Math.random() * 1000)}`,
+    try {
+      const timestamp = new Date();
+      const contentHash = `sha256_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      
+      const payload = {
+        actorUserId: "TECH-DEMO",
+        actorRole: "technician",
+        actorDeviceId: navigator.userAgent.substring(0, 50),
+        interventionId: `INT-${Date.now()}`,
         site: site || "Sito Non Specificato",
         client: client || "Cliente Non Specificato",
-        workflow_step: "Acquisizione Manuale"
-      },
-      capture: {
-        timestamp_local: new Date().toISOString(),
-        gps: { 
-          lat: locationData?.lat || 0, 
-          lng: locationData?.lng || 0, 
-          accuracy_m: 10 
+        workflowStep: "Acquisizione Manuale",
+        timestampLocal: timestamp.toISOString(),
+        gpsLat: locationData?.lat.toString() || "0",
+        gpsLng: locationData?.lng.toString() || "0",
+        gpsAccuracy: "10",
+        contentHash,
+        signatureLocal: `sig_${Date.now()}`,
+        captureMetadata: {
+          device_os: navigator.platform,
+          app_version: "1.0.0",
+          network: "browser",
+          notes: notes || undefined,
         },
-        file_name: `evidence_${Date.now()}.jpg`,
-        file_type: "image/jpeg",
-        content_hash: "mock_hash_" + Date.now(),
-        preview_url: capturedImage || ""
-      },
-      audit: {
-        created_at: new Date().toISOString(),
-        log_chain: [
-          { event: "captured", ts: new Date().toISOString() }
-        ]
-      }
-    };
+        auditLog: [
+          { event: "captured", ts: timestamp.toISOString() }
+        ],
+      };
 
-    addProof(newProof);
-    setStep("complete");
-    setTimeout(() => setLocation("/"), 2500);
+      const result = await createProof.mutateAsync({ file: capturedFile, data: payload });
+      
+      setCreatedProofId(result.proof_id);
+      setStep("complete");
+      
+      toast({
+        title: "Prova Certificata",
+        description: "L'acquisizione è stata salvata con successo.",
+      });
+      
+      setTimeout(() => setLocation("/"), 2500);
+    } catch (error) {
+      console.error('Error creating proof:', error);
+      setStep("details");
+      toast({
+        title: "Errore",
+        description: error instanceof Error ? error.message : "Errore durante la creazione della prova.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -339,7 +379,7 @@ export default function Capture() {
               <p className="text-muted-foreground">
                 L'acquisizione è stata certificata e archiviata in modo immutabile.
                 <br/>
-                <span className="text-xs font-mono mt-2 block text-primary">ID: {uuidv4().substring(0,8).toUpperCase()}</span>
+                <span className="text-xs font-mono mt-2 block text-primary">ID: {createdProofId.substring(0,8).toUpperCase()}</span>
               </p>
             </div>
           )}

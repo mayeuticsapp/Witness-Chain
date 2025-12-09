@@ -1,5 +1,6 @@
 import { useRoute, useLocation } from "wouter";
-import { getProofById, Manifest } from "@/lib/mock-data";
+import { useProofById } from "@/lib/hooks";
+import { Manifest } from "@/lib/mock-data";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -16,7 +17,8 @@ import {
   Download,
   Share2,
   ExternalLink,
-  CheckCircle2
+  CheckCircle2,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
@@ -27,9 +29,18 @@ export default function ProofDetail() {
 
   if (!match || !params) return null;
 
-  const proof = getProofById(params.id);
+  const { data: proof, isLoading, error } = useProofById(params.id);
 
-  if (!proof) {
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Caricamento prova...</p>
+      </div>
+    );
+  }
+
+  if (error || !proof) {
     return (
       <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
         <h1 className="text-2xl font-bold">Prova non trovata</h1>
