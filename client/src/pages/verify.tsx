@@ -3,8 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ShieldCheck, FileCheck, CheckCircle2, AlertTriangle, Loader2 } from "lucide-react";
-import { getProofById } from "@/lib/mock-data";
 import { useLocation } from "wouter";
+import { api } from "@/lib/api";
 
 export default function Verify() {
   const [, setLocation] = useLocation();
@@ -12,14 +12,13 @@ export default function Verify() {
   const [isVerifying, setIsVerifying] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const handleVerify = (e: React.FormEvent) => {
+  const handleVerify = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setIsVerifying(true);
 
-    // Simulate verification delay
-    setTimeout(() => {
-      const proof = getProofById(searchId);
+    try {
+      const proof = await api.getProofById(searchId.trim());
       setIsVerifying(false);
       
       if (proof) {
@@ -27,7 +26,10 @@ export default function Verify() {
       } else {
         setError("Nessuna prova trovata con questo ID. Verifica che il codice sia corretto.");
       }
-    }, 1500);
+    } catch (err) {
+      setIsVerifying(false);
+      setError("Errore durante la verifica. Riprova più tardi.");
+    }
   };
 
   return (

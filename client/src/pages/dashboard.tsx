@@ -14,16 +14,18 @@ import {
   TrendingUp,
   Activity,
   Euro,
-  Zap
+  Zap,
+  Loader2
 } from "lucide-react";
-import { getProofs, Manifest } from "@/lib/mock-data";
+import { useProofs } from "@/lib/hooks";
+import { Manifest } from "@/lib/mock-data";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
 import { Area, AreaChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 export default function Dashboard() {
-  const proofs = getProofs();
   const [searchTerm, setSearchTerm] = useState("");
+  const { data: proofs = [], isLoading, error } = useProofs();
 
   const filteredProofs = proofs.filter(p => 
     p.context.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -162,8 +164,21 @@ export default function Dashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              {filteredProofs.map((proof) => (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : error ? (
+              <div className="text-center py-12 text-muted-foreground">
+                Errore nel caricamento delle prove. Riprova più tardi.
+              </div>
+            ) : filteredProofs.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                {searchTerm ? "Nessuna prova trovata." : "Nessuna prova ancora. Crea la prima acquisizione!"}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {filteredProofs.map((proof) => (
                 <div 
                   key={proof.proof_id} 
                   className="group flex items-center justify-between p-4 rounded-lg border bg-card/50 hover:bg-accent/50 transition-all cursor-pointer"
@@ -210,8 +225,9 @@ export default function Dashboard() {
                     </Button>
                   </Link>
                 </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
