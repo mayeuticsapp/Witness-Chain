@@ -1,0 +1,312 @@
+Architettura witnesschain per implementazione su replit
+Prima di tutto: sì, posso darti una struttura realizzabile su Replit. Se già usi Nodus AI, posso anche indicarti come adattarla. Ti propongo un’architettura modulare, con componenti chiari, API contrattualizzate e un flusso probatorio eIDAS-compliant.
+
+Panoramica dei componenti
+* Mobile app (capture client): iOS/Android o PWA con funzioni di cattura assistita.
+    * Cattura certificata: foto, video, audio, testo, checklist.
+    * Metadati: GPS, time, device ID, utente, contesto intervento.
+    * Sigillatura locale: hash, manifest JSON, firma locale opzionale.
+* Gateway API (backend): orchestrazione, autenticazione, validazione, code di lavorazione.
+    * Ingestione: riceve contenuti e manifest, verifica hash e policy.
+    * Queue & workers: pipeline asincrona per timestamp e storage.
+* WitnessChain engine (core): motore probatorio.
+    * Timestamp qualificato: integrazione TSA UE (eIDAS).
+    * WORM storage layer: scrittura immutabile + retention policy.
+    * Blockchain anchor (opzionale): ancoraggio periodico Merkle root su chain pubblica.
+* Verification & dashboard: interfaccia e API di verifica/ricerca.
+    * Verifica prova: controlli di integrità, marca temporale, catena di custody.
+    * Report forense: PDF/JSON firmato, con metadati e log di processo.
+* Security & governance: IAM, audit, chiavi, policy.
+    * Gestione chiavi: HSM/managed KMS (mockabile in dev).
+    * Audit trail: eventi firmati, append-only.
+    * Policy legale: retention, accesso, cancellazione controllata con tracciamento.
+
+Flusso dati probatorio
+1. Cattura sul device
+    * Acquisizione: foto/video/audio con metadati.
+    * Manifest locale: JSON con hash del contenuto, versione protocollo, metadati, ID utente/intervento.
+    * Sigillatura: calcolo SHA-256 e firma locale (chiave app/utente, opzionale).
+    * Upload sicuro: invio multi‑parte (contenuto + manifest) via HTTPS/TLS mTLS.
+2. Validazione in ingresso (Gateway)
+    * Autenticazione: OAuth2/JWT + device attestation (opzionale).
+    * Coerenza hash: ricalcolo hash server-side, confronto con manifest.
+    * Policy & anti‑tamper: blocco se mismatch o metadati incoerenti.
+3. Marca temporale qualificata (Engine)
+    * Richiesta TSA: invio hash del contenuto/manifest alla TSA qualificata, ricezione token TST.
+    * Binding: associazione TST al record della prova, firma del pacchetto di evidenza.
+4. Scrittura immutabile (WORM)
+    * Staging: pacchetto completo (content + manifest + TST + log).
+    * Write‑Once: scrittura su storage WORM (bucket con policy immutabilità + ledger append-only).
+    * Checkpoint Merkle: calcolo Merkle tree periodico, archiviazione del root.
+5. Ancoraggio su blockchain (opzionale)
+    * Batch anchoring: pubblicazione del Merkle root su chain pubblica (es. Ethereum/L2) a intervalli.
+    * Proof path: salvataggio delle prove di inclusione per singola evidenza.
+6. Verifica e reporting (Dashboard)
+    * Verifica integrità: hash, coerenza metadati, TST valido, catena di custody.
+    * Report: generazione PDF/JSON firmato con dati tecnici e timeline.
+    * Esibizione: link di verifica pubblica/privata, API per terzi.
+
+Interfacce e contratti API
+Capture API
+* POST /v1/proofs
+    * Body: multipart (file, manifest.json)
+    * Manifest campi minimi:
+        * proof_id: UUID
+        * actor_id / device_id: identificativi
+        * context: intervento, cliente, sito
+        * timestamp_local: ISO 8601
+        * gps: lat/long/accuracy
+        * content_hash: SHA-256 del file
+        * signature_local: opzionale (JWS)
+        * protocol_version: semver
+* Response:
+    * status: accepted
+    * ingestion_id
+    * next: url verifica stato
+Status API
+* GET /v1/proofs/{proof_id}/status
+    * Response: { phase: captured|tsa|worm|anchored, tsa_tst_id?, anchored_txid? }
+Verification API
+* GET /v1/proofs/{proof_id}
+    * Response: pacchetto completo (manifest, TST, hash, audit log, report link)
+* GET /v1/proofs/{proof_id}/report
+    * Response: PDF/JSON firmato
+
+Scelte tecniche consigliate per replit
+* Backend:
+    * Runtime: Node.js (NestJS/Express) o Python (FastAPI). Su Replit è più lineare Node.
+    * Queue: BullMQ/Redis (Replit supporta Redis esterno; in dev puoi mockare con in‑memory).
+    * Storage WORM (dev): S3‑compatible con Object Lock (MinIO locale + policy immutabilità). Su Replit, usa un provider esterno (AWS S3 con Object Lock è l’ideale).
+* TSA integrazione:
+    * Adaptor TSA: modulo separato che invia l’hash e riceve TST (interfaccia plug‑in per diversi TSA).
+    * Mock in dev: generare TST fittizio firmato da una chiave dev, per test del flusso.
+* Blockchain anchor:
+    * Batcher: job cron che prende Merkle root e pubblica su chain (ethers.js).
+    * Config: chain id, frequenza, wallet sicuro (chiave solo in job runner).
+* Mobile app:
+    * PWA + Capacitor: per velocizzare prototipo cross‑platform.
+    * Camera e metadati: uso di API native per GPS, device ID, e EXIF; hashing locale.
+    * Offline‑first: coda locale con retry.
+* Dashboard:
+    * Frontend: React + Tailwind.
+    * Verifica pubblica: pagina “trust portal” con verifica hash/TST/anchor.
+
+Sicurezza e compliance
+* Autenticazione:
+    * Label: JWT/OAuth2 con rotazione, mTLS tra client fidati.
+* Gestione chiavi:
+    * Label: KMS gestito (dev: env-secure; prod: HSM/KMS).
+* Audit trail:
+    * Label: log append‑only firmati (firma server + hash chain).
+* Privacy & governance:
+    * Label: minimizzazione metadati, data retention, controllo accessi per ruolo.
+* Immutabilità:
+    * Label: WORM con Object Lock e legal hold, versioning disabilitato o gestito con policy.
+* Test legale:
+    * Label: pacchetti di prova con catena completa e linterna di verifica pubblica.
+
+Adattare una struttura esistente (Nodus AI)
+Se stai già usando un’architettura “Nodus AI” (tipico setup con microservizi e pipeline dati), ti propongo queste modifiche minime:
+* Inserire un “Proof Orchestrator” tra ingest e storage:
+    * Label: valida manifest, gestisce richieste TSA, costruisce pacchetto prova.
+* Aggiungere “WORM Storage Adapter”:
+    * Label: astrae verso S3 Object Lock o storage immutabile, con policy e audit.
+* Introdurre “Merkle & Anchor Service”:
+    * Label: batch, root, on-chain publish, proof path API.
+* Estendere “Verification Gateway”:
+    * Label: endpoint di verifica con controlli TST, hash, chain, report firmati.
+* Mobile capture SDK:
+    * Label: libreria condivisa per hashing locale, metadati, firma, upload.
+Se preferisci, posso mappare i componenti Nodus AI ai moduli WitnessChain uno‑a‑uno per ridurre refactoring.
+
+Roadmap di implementazione su replit
+1. Sprint 1 (2 settimane):
+    * Capture API, hash/manifest, ingest validation, basic dashboard.
+2. Sprint 2 (2 settimane):
+    * TSA adaptor (mock + interfaccia), WORM adapter (S3 esterno).
+3. Sprint 3 (2 settimane):
+    * Verification API, report PDF/JSON firmati, audit trail.
+4. Sprint 4 (2 settimane):
+    * Merkle & anchor service, trust portal pubblico di verifica.
+5. Sprint 5 (ongoing):
+    * Mobile PWA/Capacitor, offline queue, device attestation.
+
+Vuoi il contratto JSON del manifest e l’elenco esatto dei campi obbligatori/facoltativi per partire subito? Posso prepararti lo schema e i payload di esempio per le chiamate API.
+
+
+
+
+// - Add blockchain anchoring cron // - Add PDF generation service // - Add roles & permissions // - Add AI integrity checks (deepfake detection) // - Add process builder (guided workflows)
+
+Hai fatto un ottimo lavoro, Manus 👏. La base che hai messo insieme è già full‑stack e pronta per un prototipo operativo. Ti propongo alcune integrazioni/miglioramenti significativi che rendono la struttura più vicina a un vero protocollo probatorio come WitnessChain:
+
+🔧 Miglioramenti Architetturali
+1. Autenticazione & Ruoli
+* Integra JWT con ruoli (admin, tecnico, auditor).
+* Ogni certificazione deve avere un attore identificato (userId firmato).
+* Usa middleware Express per validare token e ruoli.
+js
+
+// middleware/auth.js
+import jwt from 'jsonwebtoken';
+
+export function requireAuth(role) {
+  return (req, res, next) => {
+    try {
+      const token = req.headers.authorization?.split(' ')[1];
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      if (role && payload.role !== role) return res.status(403).json({ error: 'Forbidden' });
+      req.user = payload;
+      next();
+    } catch {
+      res.status(401).json({ error: 'Unauthorized' });
+    }
+  };
+}
+
+2. PDF probatorio automatico
+* Dopo ogni certificazione, genera un report PDF firmato con hash, metadati, TSA, GPS.
+* Usa librerie come pdfkit o puppeteer per generare un documento leggibile e opponibile.
+
+3. Integrazione TSA reale
+* Sostituisci lo stub TSA con provider qualificati (Aruba, InfoCert).
+* Modulo dedicato: tsaAdapter.js con interfaccia plug‑in.
+* In dev puoi mockare, in prod agganciarti via API.
+
+4. Blockchain anchoring
+* Aggiungi un cron job che ogni X minuti calcola un Merkle root di tutte le prove nuove e lo pubblica su Ethereum/L2.
+* Salva txid e proof_path nel DB per verifica pubblica.
+
+5. AI integrity checks
+* Integra moduli di detection (spoofing GPS, deepfake, manipolazioni EXIF).
+* Librerie: exiftool-vendored, modelli AI per deepfake detection.
+* Salva risultato analisi nel DB come campo integrity_score.
+
+6. Workflow guidati (FSM)
+* Aggiungi un process builder: checklist di step (foto iniziale, audio autorizzazione, foto finale).
+* Ogni step produce una prova certificata, legata all’intervento.
+* Tabella workflow_steps con foreign key su evidence.
+
+7. Docker Compose
+* Per deploy serio:
+    * server (Node.js + Express)
+    * db (Postgres)
+    * minio (S3 WORM)
+    * client (React)
+* Configurazione pronta per scalare fuori da Replit.
+
+📂 Struttura aggiornata
+Codice
+
+/server
+  index.js
+  middleware/auth.js
+  lib/storage.js
+  lib/tsaAdapter.js
+  lib/blockchain.js
+  lib/pdfReport.js
+  lib/integrityChecks.js
+/client
+  src/App.jsx
+/shared
+  dto/
+  utils/
+docker-compose.yml
+
+🔑 Sintesi
+* La tua base è già ottima per un MVP.
+* Con queste aggiunte diventa un protocollo operativo completo: autenticato, opponibile, immutabile, verificabile, con report probatorio e AI antifrode.
+* È la differenza tra un demo tecnico e una scatola nera certificata pronta per il mercato.
+
+Vuoi che ti prepari anche lo schema JSON del manifest probatorio (con campi obbligatori/facoltativi) così puoi standardizzare subito il formato delle prove?
+
+
+ok
+
+Perfetto Manus 🙌 Allora ti preparo lo schema JSON del manifest probatorio, così puoi standardizzare subito il formato delle prove e avere un contratto chiaro tra client e backend. Questo è il cuore del protocollo WitnessChain: ogni evidenza deve avere un “manifest” che lega contenuto, contesto e responsabilità.
+
+📑 Schema JSON – Manifest Probatorio
+json
+
+{
+  "proof_id": "uuid-v4",
+  "protocol_version": "1.0.0",
+  "actor": {
+    "user_id": "string",
+    "role": "technician|auditor|admin",
+    "device_id": "string"
+  },
+  "context": {
+    "intervention_id": "string",
+    "site": "string",
+    "client": "string",
+    "workflow_step": "string"
+  },
+  "capture": {
+    "timestamp_local": "2025-12-09T20:14:00Z",
+    "gps": {
+      "lat": 45.12345,
+      "lng": 10.12345,
+      "accuracy_m": 5
+    },
+    "file_name": "photo_001.jpg",
+    "file_type": "image/jpeg",
+    "content_hash": "sha256-hex",
+    "signature_local": "JWS-compact",
+    "metadata": {
+      "device_os": "iOS 18.2",
+      "app_version": "1.0.0",
+      "network": "4G"
+    }
+  },
+  "tsa": {
+    "provider": "Aruba",
+    "tsa_token": "base64",
+    "tsa_timestamp": "2025-12-09T20:14:05Z"
+  },
+  "storage": {
+    "worm_path": "s3://bucket/evidence/photo_001.jpg",
+    "retention_until": "2026-12-09T20:14:00Z"
+  },
+  "blockchain_anchor": {
+    "merkle_root": "hex",
+    "txid": "0xabc123...",
+    "chain": "Ethereum-L2",
+    "anchored_at": "2025-12-09T20:30:00Z"
+  },
+  "integrity_checks": {
+    "deepfake_detected": false,
+    "gps_spoofing": false,
+    "score": 0.98
+  },
+  "audit": {
+    "created_at": "2025-12-09T20:14:00Z",
+    "server_signature": "JWS-compact",
+    "log_chain": [
+      { "event": "captured", "ts": "2025-12-09T20:14:00Z" },
+      { "event": "tsa_applied", "ts": "2025-12-09T20:14:05Z" },
+      { "event": "worm_written", "ts": "2025-12-09T20:14:10Z" },
+      { "event": "anchored", "ts": "2025-12-09T20:30:00Z" }
+    ]
+  }
+}
+
+🔑 Campi obbligatori
+* proof_id
+* actor.user_id
+* capture.timestamp_local
+* capture.content_hash
+* tsa.tsa_token
+* storage.worm_path
+* audit.created_at
+🔧 Campi facoltativi
+* blockchain_anchor (se attivo)
+* integrity_checks (se AI antifrode integrata)
+* context.workflow_step (se workflow guidato)
+
+📌 Sintesi
+* Questo schema è il contratto universale tra client e backend.
+* Ogni prova è un pacchetto JSON che lega contenuto, contesto, marca temporale, storage immutabile e audit trail.
+* Puoi usarlo subito su Replit come DTO condiviso (/shared/dto/manifest.json).
+
+
