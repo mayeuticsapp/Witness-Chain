@@ -13,7 +13,8 @@ import {
   FileText,
   UploadCloud,
   X,
-  ShieldCheck
+  ShieldCheck,
+  Zap
 } from "lucide-react";
 import { addProof, Manifest } from "@/lib/mock-data";
 import { v4 as uuidv4 } from "uuid";
@@ -87,7 +88,7 @@ export default function Capture() {
     setStep("uploading");
     
     // Simulate processing
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    await new Promise(resolve => setTimeout(resolve, 2500));
 
     const newProof: Manifest = {
       proof_id: uuidv4(),
@@ -126,13 +127,16 @@ export default function Capture() {
 
     addProof(newProof);
     setStep("complete");
-    setTimeout(() => setLocation("/"), 2000);
+    setTimeout(() => setLocation("/"), 2500);
   };
 
   return (
     <div className="max-w-xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Nuova Acquisizione</h1>
+        <div>
+          <h1 className="text-2xl font-bold">Nuova Acquisizione</h1>
+          <p className="text-xs text-muted-foreground">Documenta l'intervento in 3 secondi.</p>
+        </div>
         {locationData ? (
           <div className="flex items-center gap-2 text-xs text-green-600 bg-green-100 px-2 py-1 rounded-full">
             <MapPin className="h-3 w-3" />
@@ -228,9 +232,12 @@ export default function Capture() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <div className="text-center font-medium">Acquisizione Completata</div>
-                    <Button className="w-full" onClick={() => setStep("details")}>
-                      Procedi ai Dettagli
+                    <div className="text-center font-medium flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-5 w-5 text-green-500" />
+                      Acquisizione Completata
+                    </div>
+                    <Button className="w-full h-12 text-lg font-bold" onClick={() => setStep("details")}>
+                      Procedi (3s)
                     </Button>
                   </div>
                 )}
@@ -267,7 +274,7 @@ export default function Capture() {
                 </div>
               </div>
 
-              <div className="bg-muted p-4 rounded-lg text-sm space-y-2 font-mono">
+              <div className="bg-muted p-4 rounded-lg text-sm space-y-2 font-mono border-l-4 border-primary">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">HASH:</span>
                   <span className="text-xs truncate max-w-[200px]">e3b0c44298fc1c149afbf4c8...</span>
@@ -283,10 +290,13 @@ export default function Capture() {
               </div>
 
               <div className="pt-4">
-                <Button className="w-full" size="lg" onClick={handleSubmit}>
-                  <ShieldCheck className="mr-2 h-4 w-4" />
-                  Firma e Carica Prova
+                <Button className="w-full h-12 text-lg" size="lg" onClick={handleSubmit}>
+                  <ShieldCheck className="mr-2 h-5 w-5" />
+                  Sigilla & Certifica (eIDAS)
                 </Button>
+                <p className="text-xs text-center text-muted-foreground mt-2">
+                  Cliccando attivi il processo di marcatura temporale qualificata.
+                </p>
               </div>
             </div>
           )}
@@ -298,20 +308,23 @@ export default function Capture() {
                 <Loader2 className="h-16 w-16 text-primary animate-spin relative z-10" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-xl font-bold">Caricamento Sicuro</h3>
+                <h3 className="text-xl font-bold">Sigillatura in Corso</h3>
                 <p className="text-muted-foreground max-w-xs mx-auto">
-                  Hashing, firma digitale e caricamento sul gateway sicuro in corso...
+                  La "Scatola Nera" sta applicando i sigilli crittografici...
                 </p>
               </div>
-              <div className="w-full max-w-xs space-y-2 text-xs font-mono text-muted-foreground text-left">
+              <div className="w-full max-w-xs space-y-3 text-xs font-mono text-muted-foreground text-left bg-muted/50 p-4 rounded-lg">
                 <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle2 className="h-3 w-3" /> Hashing SHA-256 completato
+                  <CheckCircle2 className="h-3 w-3" /> Hashing SHA-256 locale
                 </div>
                 <div className="flex items-center gap-2 text-green-600">
-                  <CheckCircle2 className="h-3 w-3" /> Firma dispositivo applicata
+                  <CheckCircle2 className="h-3 w-3" /> Firma dispositivo (Ed25519)
                 </div>
-                <div className="flex items-center gap-2 animate-pulse">
-                  <Loader2 className="h-3 w-3 animate-spin" /> Uploading to Gateway...
+                <div className="flex items-center gap-2 text-green-600">
+                  <CheckCircle2 className="h-3 w-3" /> Richiesta Timestamp eIDAS
+                </div>
+                <div className="flex items-center gap-2 animate-pulse text-primary">
+                  <Loader2 className="h-3 w-3 animate-spin" /> WORM Storage Commit...
                 </div>
               </div>
             </div>
@@ -319,12 +332,14 @@ export default function Capture() {
 
           {step === "complete" && (
             <div className="flex-1 bg-card flex flex-col items-center justify-center p-8 text-center space-y-6">
-              <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-4">
-                <CheckCircle2 className="h-10 w-10" />
+              <div className="h-20 w-20 bg-green-100 rounded-full flex items-center justify-center text-green-600 mb-4 shadow-lg shadow-green-200">
+                <ShieldCheck className="h-10 w-10" />
               </div>
-              <h3 className="text-2xl font-bold">Acquisizione Riuscita</h3>
+              <h3 className="text-2xl font-bold">Prova Blindata</h3>
               <p className="text-muted-foreground">
-                La prova è stata acquisita e messa in coda per la marcatura temporale qualificata.
+                L'acquisizione è stata certificata e archiviata in modo immutabile.
+                <br/>
+                <span className="text-xs font-mono mt-2 block text-primary">ID: {uuidv4().substring(0,8).toUpperCase()}</span>
               </p>
             </div>
           )}
