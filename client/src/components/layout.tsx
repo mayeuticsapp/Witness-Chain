@@ -55,7 +55,7 @@ export default function Layout({ children }: LayoutProps) {
           <img src={logoIcon} alt="WitnessChain" className="h-8 w-8 rounded-sm" />
           <div>
             <h1 className="font-bold text-lg tracking-tight">WitnessChain</h1>
-            <p className="text-xs text-sidebar-foreground/60 font-mono">PROTOCOLLO V1.0</p>
+            <p className="text-[10px] text-sidebar-foreground/60 font-mono uppercase tracking-wider">The Digital Witness</p>
           </div>
         </div>
 
@@ -83,10 +83,11 @@ export default function Layout({ children }: LayoutProps) {
           <div className="bg-sidebar-accent/50 rounded-lg p-3 mb-4">
             <div className="flex items-center gap-2 mb-2">
               <div className="h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-              <span className="text-xs font-mono text-sidebar-foreground/70">SYSTEM ONLINE</span>
+              <span className="text-xs font-mono text-sidebar-foreground/70">eIDAS GATEWAY</span>
             </div>
             <div className="text-xs text-sidebar-foreground/50 font-mono break-all">
-              Node: eu-central-1
+              Status: Connected<br/>
+              Node: eu-milan-01
             </div>
           </div>
           

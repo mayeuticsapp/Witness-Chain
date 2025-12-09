@@ -12,7 +12,9 @@ import {
   Search,
   ArrowRight,
   TrendingUp,
-  Activity
+  Activity,
+  Euro,
+  Zap
 } from "lucide-react";
 import { getProofs, Manifest } from "@/lib/mock-data";
 import { format } from "date-fns";
@@ -31,8 +33,8 @@ export default function Dashboard() {
 
   const stats = [
     { label: "Prove Certificate", value: proofs.length, icon: ShieldCheck, color: "text-green-500" },
-    { label: "In Attesa di Anchor", value: proofs.filter(p => p.status === "processing").length, icon: Clock, color: "text-amber-500" },
-    { label: "Storage WORM", value: "1.2 GB", icon: Database, color: "text-blue-500" },
+    { label: "Contenziosi Prevenuti", value: "85%", icon: TrendingUp, color: "text-blue-500" },
+    { label: "Storage WORM", value: "1.2 GB", icon: Database, color: "text-purple-500" },
     { label: "Audit Score Medio", value: "99.2%", icon: Activity, color: "text-primary" },
   ];
 
@@ -52,12 +54,14 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Dashboard Forense</h1>
-          <p className="text-muted-foreground mt-1">Panoramica delle acquisizioni e stato del ledger.</p>
+          <p className="text-muted-foreground mt-1">
+            "Scatola nera" digitale: monitoraggio in tempo reale delle prove con valore legale.
+          </p>
         </div>
         <Link href="/capture">
-          <Button className="shadow-lg shadow-primary/20">
-            <div className="mr-2 h-2 w-2 rounded-full bg-white animate-pulse" />
-            Nuova Acquisizione
+          <Button className="shadow-lg shadow-primary/20 h-12 px-6 text-lg">
+            <Zap className="mr-2 h-5 w-5 fill-current" />
+            Nuova Acquisizione Rapida
           </Button>
         </Link>
       </div>
@@ -77,6 +81,64 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Business Model & Value Section */}
+      <div className="grid gap-4 md:grid-cols-3">
+        <Card className="glass-panel bg-gradient-to-br from-primary/5 to-transparent border-primary/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+              <Euro className="mr-2 h-5 w-5 text-primary" />
+              Valore Generato
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">€ 12.450</div>
+            <p className="text-xs text-muted-foreground mt-1">Risparmio stimato su liti evitate questo mese</p>
+            <div className="mt-4 text-xs font-mono bg-primary/10 p-2 rounded text-primary border border-primary/20">
+              ROI: 15x rispetto al costo licenza
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-panel">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+               <ShieldCheck className="mr-2 h-5 w-5 text-green-600" />
+               Stato Conformità
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+             <div className="flex items-center justify-between mb-2">
+               <span className="text-sm">Timestamp eIDAS</span>
+               <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Attivo</Badge>
+             </div>
+             <div className="flex items-center justify-between mb-2">
+               <span className="text-sm">WORM Storage</span>
+               <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Attivo</Badge>
+             </div>
+             <div className="flex items-center justify-between">
+               <span className="text-sm">Blockchain Anchor</span>
+               <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">Ethereum L2</Badge>
+             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="glass-panel">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center">
+               <Activity className="mr-2 h-5 w-5 text-blue-500" />
+               Licenze Attive
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+             <div className="text-3xl font-bold">12 / 15</div>
+             <p className="text-xs text-muted-foreground mt-1">Dispositivi attivi sul campo</p>
+             <div className="w-full bg-secondary h-2 rounded-full mt-4 overflow-hidden">
+               <div className="bg-primary h-full w-[80%] rounded-full" />
+             </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Main Content Area */}
       <div className="grid gap-8 md:grid-cols-7">
         
@@ -84,7 +146,7 @@ export default function Dashboard() {
         <Card className="md:col-span-4 lg:col-span-5 glass-panel">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle>Ultime Prove Acquisite</CardTitle>
+              <CardTitle>Registro Prove Immutabile</CardTitle>
               <div className="relative w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input 
@@ -95,7 +157,9 @@ export default function Dashboard() {
                 />
               </div>
             </div>
-            <CardDescription>Registro immutabile delle ultime operazioni.</CardDescription>
+            <CardDescription>
+              Ogni riga rappresenta un evento legalmente opponibile certificato.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -117,9 +181,14 @@ export default function Dashboard() {
                         <h3 className="font-semibold text-foreground">{proof.context.site}</h3>
                         <StatusBadge status={proof.status} />
                       </div>
-                      <p className="text-sm text-muted-foreground font-mono mt-1">
-                        ID: {proof.proof_id.substring(0, 8)}... • {proof.context.client}
-                      </p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <p className="text-sm text-muted-foreground font-mono">
+                          ID: {proof.proof_id.substring(0, 8)}...
+                        </p>
+                        <span className="text-xs bg-blue-50 text-blue-700 px-1.5 py-0.5 rounded border border-blue-100 flex items-center gap-1">
+                          <ShieldCheck className="h-3 w-3" /> eIDAS
+                        </span>
+                      </div>
                     </div>
                   </Link>
                   

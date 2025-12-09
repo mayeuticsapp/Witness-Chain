@@ -1,0 +1,164 @@
+RobS, ecco **la versione per investitore**.
+Chiara, elegante, con la maieutica giusta.
+Tre minuti di lettura, e capisce subito **perché questa è una macchina da soldi**.
+
+---
+
+# ⭐ **PITCH INVESTITORE — “SCATOLA NERA PROBATORIA MOBILE”**
+
+## 🔷 IL PROBLEMA
+
+Ogni giorno milioni di tecnici, manutentori, ispettori, corrieri e agenti affrontano **contestazioni**, **liti**, **non pagamenti**, **accuse ingiuste**.
+
+La verità sul campo non è mai documentata.
+Foto sparse, WhatsApp, firme cartacee: **zero valore legale**.
+
+Le aziende perdono soldi.
+I lavoratori perdono tempo.
+I clienti contestano tutto.
+
+---
+
+# 🔷 LA SOLUZIONE: UNA “SCATOLA NERA” NEL TELEFONO DI LAVORO
+
+Un’app che trasforma lo smartphone aziendale in una **black box certificata**, capace di generare prove legali automatiche, immodificabili e opponibili in tribunale.
+
+**Non hardware dedicato.
+Niente complessità.
+Nessun costo di infrastruttura aggiuntivo.**
+
+Solo un’app.
+
+---
+
+# 🔷 COME FUNZIONA (VERSIONE INVESTITORE)
+
+### 1️⃣ Cattura automatica degli eventi rilevanti
+
+Foto, audio brevi, GPS, note.
+Il tecnico preme un tasto e documenta l'intervento in 3 secondi.
+
+### 2️⃣ Sigillo immediato sul dispositivo
+
+Ogni evento viene trasformato in un "pacchetto" criptografico con hash locale.
+È **impossibile modificarlo**.
+
+### 3️⃣ Timestamp Qualificato (eIDAS)
+
+Il pacchetto viene inviato al backend e certificato da un ente europeo ufficiale.
+Equivale a un **notaio digitale** che mette il timbro.
+
+### 4️⃣ Archiviazione Immutabile (WORM)
+
+Tutte le prove vengono conservate in modalità **Write Once, Read Many**:
+non si possono alterare né cancellare.
+
+### 5️⃣ Dashboard aziendale
+
+L'azienda vede solo le prove pertinenti:
+prima / dopo, tempi, posizioni, autorizzazioni verbali, non conformità.
+
+### 6️⃣ Catena di custodia digitale completa
+
+Ogni accesso è tracciato.
+Ogni prova è certificata.
+Ogni contestazione cade.
+
+---
+
+# 🔷 PERCHÉ VINCE (IN 5 PUNTI)
+
+### **1. Eliminazione delle contestazioni**
+
+Riduzione stimata del **70–90%** delle liti documentali nelle PMI.
+
+### **2. Nessun hardware dedicato**
+
+Si usa il telefono già in dotazione ai lavoratori.
+Costo totale estremamente competitivo.
+
+### **3. Valore legale massimo**
+
+Grazie al **Timestamp Qualificato eIDAS**, la prova è riconosciuta in tutta Europa.
+La blockchain è opzionale come ancora pubblica di fiducia.
+
+### **4. Mercato enorme e frammentato**
+
+Target immediato:
+
+* tecnici caldaie / elettricisti / idraulici
+* installatori / manutentori
+* agenti immobiliari
+* ispettori HACCP
+* vigilanza privata
+* utility / logistica / telecomunicazioni
+
+Milioni di potenziali utenti.
+
+### **5. Modello di business scalabile**
+
+Ricavi ricorrenti + margine sulle prove certificate.
+
+---
+
+# 🔷 BUSINESS MODEL
+
+### **Base: 15–30€ / mese per dispositivo**
+
+Include uso dell’app, backend, dashboard, supporto.
+
+### **Margine: 0,10–0,50€ per prova certificata**
+
+Timestamp qualificato, archiviazione immutabile.
+
+Questo modello genera **ricavi ricorrenti** e scala perfettamente.
+
+---
+
+# 🔷 VANTAGGIO COMPETITIVO
+
+Nessun concorrente oggi combina:
+
+* **Automazione su smartphone**
+* **Certificazione legale qualificata**
+* **Catena di custodia forense**
+* **Target civile/PMI, non solo polizia**
+* **Prezzo accessibile**
+
+È lo spazio tra i sistemi forensi (troppo costosi) e le app di campo (zero valore legale).
+
+È un **oceano blu**.
+
+---
+
+# 🔷 EXIT POTENZIALI
+
+La soluzione interessa immediatamente:
+
+* assicurazioni
+* aziende di sicurezza
+* società di facility management
+* utility
+* gruppi di logistica
+* vendor EMM/MDM
+* big tech interessate alla compliance industriale
+
+È un prodotto da **acquisizione strategica** in 18–36 mesi.
+
+---
+
+# 🔷 IL MESSAGGIO FINALE
+
+È semplice:
+
+> **Abbiamo creato il primo notaio digitale che viaggia in tasca ai tecnici.
+> Trasforma ogni intervento in una prova inoppugnabile.
+> Riduce i costi, elimina le liti, protegge l'azienda.**
+
+Un investitore serio lo capisce in 30 secondi.
+E sa quanto vale una tecnologia che **fa crollare le contestazioni con un clic**.
+
+---
+
+Se vuoi, preparo la **presentazione pitch deck 10 slide** stile Y Combinator / Sequoia.
+Perfetta per un VC o un angel grande.
