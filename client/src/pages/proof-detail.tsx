@@ -1,0 +1,273 @@
+import { useRoute, useLocation } from "wouter";
+import { getProofById, Manifest } from "@/lib/mock-data";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  ArrowLeft, 
+  ShieldCheck, 
+  MapPin, 
+  Calendar, 
+  FileCheck, 
+  Database, 
+  Hash, 
+  User, 
+  Download,
+  Share2,
+  ExternalLink,
+  CheckCircle2
+} from "lucide-react";
+import { format } from "date-fns";
+import { it } from "date-fns/locale";
+
+export default function ProofDetail() {
+  const [match, params] = useRoute("/proofs/:id");
+  const [, setLocation] = useLocation();
+
+  if (!match || !params) return null;
+
+  const proof = getProofById(params.id);
+
+  if (!proof) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[50vh] space-y-4">
+        <h1 className="text-2xl font-bold">Prova non trovata</h1>
+        <Button onClick={() => setLocation("/")}>Torna alla Dashboard</Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" size="icon" onClick={() => setLocation("/")}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">Dettaglio Prova</h1>
+          <p className="text-muted-foreground font-mono text-xs">{proof.proof_id}</p>
+        </div>
+        <div className="ml-auto flex gap-2">
+          <Button variant="outline" size="sm">
+            <Share2 className="mr-2 h-4 w-4" />
+            Condividi
+          </Button>
+          <Button size="sm">
+            <Download className="mr-2 h-4 w-4" />
+            Scarica Report PDF
+          </Button>
+        </div>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        {/* Main Evidence Card */}
+        <div className="md:col-span-2 space-y-6">
+          <Card className="overflow-hidden glass-panel">
+            <div className="aspect-video bg-black/5 flex items-center justify-center overflow-hidden relative group">
+              {proof.capture.preview_url ? (
+                <img 
+                  src={proof.capture.preview_url} 
+                  alt="Evidence" 
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <FileCheck className="h-24 w-24 text-muted-foreground/20" />
+              )}
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <Button variant="secondary">Visualizza Originale</Button>
+              </div>
+            </div>
+            <CardHeader>
+              <div className="flex items-start justify-between">
+                <div>
+                  <CardTitle>{proof.context.site}</CardTitle>
+                  <CardDescription>{proof.context.client} • {proof.context.workflow_step}</CardDescription>
+                </div>
+                <StatusBadge status={proof.status} />
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              
+              {/* Timeline */}
+              <div className="space-y-4">
+                <h3 className="font-semibold flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" /> Timeline Eventi
+                </h3>
+                <div className="relative border-l-2 border-muted ml-2 space-y-6 pl-6 py-2">
+                  {proof.audit.log_chain.map((log, i) => (
+                    <div key={i} className="relative">
+                      <div className="absolute -left-[29px] top-1 h-3 w-3 rounded-full bg-primary border-2 border-background" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium uppercase tracking-wide">{log.event.replace('_', ' ')}</span>
+                        <span className="text-xs text-muted-foreground font-mono">
+                          {format(new Date(log.ts), "dd MMM yyyy HH:mm:ss", { locale: it })}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Technical Details */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <Hash className="h-3 w-3" /> Impronta Digitale (SHA-256)
+                  </h4>
+                  <p className="text-xs font-mono bg-muted p-2 rounded break-all">
+                    {proof.capture.content_hash}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <h4 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+                    <MapPin className="h-3 w-3" /> Geolocalizzazione
+                  </h4>
+                  <div className="text-sm bg-muted p-2 rounded flex justify-between items-center">
+                    <span>{proof.capture.gps.lat.toFixed(6)}, {proof.capture.gps.lng.toFixed(6)}</span>
+                    <Badge variant="outline" className="text-[10px]">±{proof.capture.gps.accuracy_m}m</Badge>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Sidebar Info */}
+        <div className="space-y-6">
+          {/* Validation Status */}
+          <Card className="glass-panel border-l-4 border-l-green-500">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-green-600" />
+                Validazione
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <div className="flex items-center justify-between text-sm">
+                <span>Integrità File</span>
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span>Firma Dispositivo</span>
+                <CheckCircle2 className="h-4 w-4 text-green-600" />
+              </div>
+              {proof.tsa && (
+                <div className="flex items-center justify-between text-sm">
+                  <span>Marca Temporale (eIDAS)</span>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                </div>
+              )}
+              {proof.blockchain_anchor && (
+                <div className="flex items-center justify-between text-sm">
+                  <span>Blockchain Anchor</span>
+                  <CheckCircle2 className="h-4 w-4 text-green-600" />
+                </div>
+              )}
+              {proof.integrity_checks && (
+                <div className="mt-4 pt-4 border-t space-y-2">
+                  <div className="flex justify-between text-sm font-medium">
+                    <span>AI Integrity Score</span>
+                    <span className={proof.integrity_checks.score > 0.9 ? "text-green-600" : "text-amber-600"}>
+                      {(proof.integrity_checks.score * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-green-500 rounded-full" 
+                      style={{ width: `${proof.integrity_checks.score * 100}%` }} 
+                    />
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Actor Info */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <User className="h-5 w-5" />
+                Operatore
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="text-sm space-y-2">
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-muted-foreground">ID Utente:</span>
+                <span className="font-mono text-right">{proof.actor.user_id}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-muted-foreground">Ruolo:</span>
+                <span className="text-right capitalize">{proof.actor.role}</span>
+              </div>
+              <div className="grid grid-cols-2 gap-1">
+                <span className="text-muted-foreground">Device ID:</span>
+                <span className="font-mono text-right truncate pl-4" title={proof.actor.device_id}>
+                  {proof.actor.device_id}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Blockchain Info */}
+          {proof.blockchain_anchor && (
+            <Card className="bg-slate-950 text-slate-50 border-slate-800">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <Database className="h-5 w-5" />
+                  On-Chain Anchor
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-1">
+                  <span className="text-xs text-slate-400">Network</span>
+                  <div className="font-medium">{proof.blockchain_anchor.chain}</div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-slate-400">Transaction ID</span>
+                  <div className="font-mono text-xs break-all text-slate-300">
+                    {proof.blockchain_anchor.txid}
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-xs text-slate-400">Merkle Root</span>
+                  <div className="font-mono text-xs break-all text-slate-300">
+                    {proof.blockchain_anchor.merkle_root}
+                  </div>
+                </div>
+                <Button variant="outline" size="sm" className="w-full border-slate-700 hover:bg-slate-800 text-slate-300 hover:text-white">
+                  <ExternalLink className="mr-2 h-3 w-3" />
+                  Visualizza su Explorer
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: Manifest['status'] }) {
+  const styles = {
+    captured: "bg-slate-100 text-slate-700 border-slate-200",
+    processing: "bg-amber-100 text-amber-700 border-amber-200",
+    certified: "bg-blue-100 text-blue-700 border-blue-200",
+    anchored: "bg-green-100 text-green-700 border-green-200",
+  };
+
+  const labels = {
+    captured: "ACQUISITO",
+    processing: "IN CODA",
+    certified: "CERTIFICATO",
+    anchored: "ANCORATO",
+  };
+
+  return (
+    <span className={`text-xs px-2.5 py-0.5 rounded-full font-bold tracking-wider border ${styles[status]}`}>
+      {labels[status]}
+    </span>
+  );
+}
