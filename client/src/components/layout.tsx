@@ -9,7 +9,8 @@ import {
   Menu, 
   X,
   Search,
-  Truck
+  Truck,
+  Wrench
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -27,6 +28,7 @@ export default function Layout({ children }: LayoutProps) {
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Nuova Acquisizione", href: "/capture", icon: Camera },
     { name: "Consegna Corriere", href: "/delivery", icon: Truck },
+    { name: "Manutenzione", href: "/maintenance", icon: Wrench },
     { name: "Verifica Pubblica", href: "/verify", icon: Search },
   ];
 
