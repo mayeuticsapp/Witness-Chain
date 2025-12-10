@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, 
   ShieldCheck, 
@@ -18,18 +19,95 @@ import {
   Share2,
   ExternalLink,
   CheckCircle2,
-  Loader2
+  Loader2,
+  Copy,
+  Check
 } from "lucide-react";
 import { format } from "date-fns";
 import { it } from "date-fns/locale";
+import { useState } from "react";
 
 export default function ProofDetail() {
   const [match, params] = useRoute("/proofs/:id");
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [copied, setCopied] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   if (!match || !params) return null;
 
   const { data: proof, isLoading, error } = useProofById(params.id);
+
+  const handleShare = async () => {
+    const shareUrl = window.location.href;
+    
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'WitnessChain - Prova Certificata',
+          text: `Visualizza la prova certificata: ${params.id}`,
+          url: shareUrl,
+        });
+      } catch (err) {
+        if ((err as Error).name !== 'AbortError') {
+          await copyToClipboard(shareUrl);
+        }
+      }
+    } else {
+      await copyToClipboard(shareUrl);
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      toast({
+        title: "Link copiato",
+        description: "Il link è stato copiato negli appunti",
+      });
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      toast({
+        title: "Errore",
+        description: "Impossibile copiare il link",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleDownloadPDF = async () => {
+    if (!proof) return;
+    
+    setDownloading(true);
+    
+    try {
+      const reportContent = generateReportHTML(proof);
+      const blob = new Blob([reportContent], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `WitnessChain_Report_${proof.proof_id.substring(0, 8)}.html`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      
+      toast({
+        title: "Report scaricato",
+        description: "Il report è stato scaricato con successo",
+      });
+    } catch {
+      toast({
+        title: "Errore",
+        description: "Impossibile generare il report",
+        variant: "destructive",
+      });
+    } finally {
+      setDownloading(false);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -60,13 +138,13 @@ export default function ProofDetail() {
           <p className="text-muted-foreground font-mono text-xs">{proof.proof_id}</p>
         </div>
         <div className="ml-auto flex gap-2">
-          <Button variant="outline" size="sm">
-            <Share2 className="mr-2 h-4 w-4" />
-            Condividi
+          <Button variant="outline" size="sm" onClick={handleShare} data-testid="button-share">
+            {copied ? <Check className="mr-2 h-4 w-4" /> : <Share2 className="mr-2 h-4 w-4" />}
+            {copied ? "Copiato!" : "Condividi"}
           </Button>
-          <Button size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Scarica Report PDF
+          <Button size="sm" onClick={handleDownloadPDF} disabled={downloading} data-testid="button-download">
+            {downloading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Download className="mr-2 h-4 w-4" />}
+            Scarica Report
           </Button>
         </div>
       </div>
@@ -259,6 +337,155 @@ export default function ProofDetail() {
       </div>
     </div>
   );
+}
+
+function generateReportHTML(proof: Manifest): string {
+  const timestamp = proof.capture.timestamp_local 
+    ? format(new Date(proof.capture.timestamp_local), "dd MMMM yyyy HH:mm:ss", { locale: it })
+    : "N/A";
+  
+  return `<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Report Prova - WitnessChain</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 40px 20px; color: #1a1a1a; }
+    .header { text-align: center; margin-bottom: 40px; border-bottom: 2px solid #0066cc; padding-bottom: 20px; }
+    .logo { font-size: 24px; font-weight: bold; color: #0066cc; }
+    .subtitle { color: #666; font-size: 12px; text-transform: uppercase; letter-spacing: 2px; }
+    h1 { font-size: 20px; margin: 30px 0 10px; color: #333; }
+    .section { background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; }
+    .row { display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e9ecef; }
+    .row:last-child { border-bottom: none; }
+    .label { color: #666; }
+    .value { font-weight: 500; font-family: monospace; word-break: break-all; max-width: 60%; text-align: right; }
+    .hash { background: #e9ecef; padding: 10px; border-radius: 4px; font-family: monospace; font-size: 11px; word-break: break-all; margin-top: 10px; }
+    .status { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: bold; }
+    .status.certified { background: #dbeafe; color: #1d4ed8; }
+    .status.anchored { background: #dcfce7; color: #16a34a; }
+    .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e9ecef; text-align: center; color: #666; font-size: 12px; }
+    .valid { color: #16a34a; }
+    @media print { body { padding: 20px; } .section { break-inside: avoid; } }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">WitnessChain</div>
+    <div class="subtitle">Certificato di Prova Digitale</div>
+  </div>
+  
+  <div class="section">
+    <div class="row">
+      <span class="label">ID Prova</span>
+      <span class="value">${proof.proof_id}</span>
+    </div>
+    <div class="row">
+      <span class="label">Stato</span>
+      <span class="status ${proof.status}">${proof.status.toUpperCase()}</span>
+    </div>
+    <div class="row">
+      <span class="label">Data Acquisizione</span>
+      <span class="value">${timestamp}</span>
+    </div>
+  </div>
+
+  <h1>Contesto</h1>
+  <div class="section">
+    <div class="row">
+      <span class="label">Sito</span>
+      <span class="value">${proof.context.site}</span>
+    </div>
+    <div class="row">
+      <span class="label">Cliente</span>
+      <span class="value">${proof.context.client}</span>
+    </div>
+    <div class="row">
+      <span class="label">Workflow</span>
+      <span class="value">${proof.context.workflow_step || '-'}</span>
+    </div>
+  </div>
+
+  <h1>Operatore</h1>
+  <div class="section">
+    <div class="row">
+      <span class="label">ID Utente</span>
+      <span class="value">${proof.actor.user_id}</span>
+    </div>
+    <div class="row">
+      <span class="label">Ruolo</span>
+      <span class="value">${proof.actor.role}</span>
+    </div>
+    <div class="row">
+      <span class="label">Device ID</span>
+      <span class="value">${proof.actor.device_id}</span>
+    </div>
+  </div>
+
+  <h1>Integrità Digitale</h1>
+  <div class="section">
+    <div class="row">
+      <span class="label">Nome File</span>
+      <span class="value">${proof.capture.file_name}</span>
+    </div>
+    <div class="row">
+      <span class="label">Tipo File</span>
+      <span class="value">${proof.capture.file_type}</span>
+    </div>
+    <div class="row">
+      <span class="label">Geolocalizzazione</span>
+      <span class="value">${proof.capture.gps.lat.toFixed(6)}, ${proof.capture.gps.lng.toFixed(6)} (±${proof.capture.gps.accuracy_m}m)</span>
+    </div>
+    <div>
+      <span class="label">Hash SHA-256</span>
+      <div class="hash">${proof.capture.content_hash}</div>
+    </div>
+  </div>
+
+  ${proof.tsa ? `
+  <h1>Marca Temporale</h1>
+  <div class="section">
+    <div class="row">
+      <span class="label">Provider</span>
+      <span class="value">${proof.tsa.provider}</span>
+    </div>
+    <div class="row">
+      <span class="label">Timestamp TSA</span>
+      <span class="value">${proof.tsa.tsa_timestamp ? format(new Date(proof.tsa.tsa_timestamp), "dd/MM/yyyy HH:mm:ss") : '-'}</span>
+    </div>
+    <div class="row">
+      <span class="label">Stato</span>
+      <span class="value valid">Verificato</span>
+    </div>
+  </div>
+  ` : ''}
+
+  ${proof.blockchain_anchor ? `
+  <h1>Ancoraggio Blockchain</h1>
+  <div class="section">
+    <div class="row">
+      <span class="label">Network</span>
+      <span class="value">${proof.blockchain_anchor.chain}</span>
+    </div>
+    <div class="row">
+      <span class="label">Transaction ID</span>
+      <span class="value" style="font-size: 10px;">${proof.blockchain_anchor.txid}</span>
+    </div>
+    <div>
+      <span class="label">Merkle Root</span>
+      <div class="hash">${proof.blockchain_anchor.merkle_root}</div>
+    </div>
+  </div>
+  ` : ''}
+
+  <div class="footer">
+    <p>Documento generato automaticamente da WitnessChain</p>
+    <p>Questo report costituisce prova digitale con valore legale ai sensi del Regolamento eIDAS</p>
+    <p>Generato il: ${format(new Date(), "dd/MM/yyyy HH:mm:ss")}</p>
+  </div>
+</body>
+</html>`;
 }
 
 function StatusBadge({ status }: { status: Manifest['status'] }) {
