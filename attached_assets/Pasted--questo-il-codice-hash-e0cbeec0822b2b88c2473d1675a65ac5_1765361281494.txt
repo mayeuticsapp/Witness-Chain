@@ -1,0 +1,31 @@
+è questo il codice hash? e0cbeec0822b2b88c2473d1675a65ac55ae332dd37b0c8401b75a844aca29ed5
+perchè non mi da la verifica, forse ci vuole del tempo? per il resto funziona audio ecc
+PS nel db che apriremo su neon, i file multimediali vengono salvati? hai preparato le tabelle ecc?
+2 hours ago
+
+Decided on media storage strategy (6 seconds)
+L'utente ha due domande:
+1. Riguardo alla verifica dell'hash - Sì, quello è il codice hash SHA-256. Per quanto riguarda la verifica con OpenTimestamps, ci vuole del tempo perché il timestamp deve essere ancorato sulla blockchain Bitcoin (circa 1-2 ore o più).
+2. Riguardo al database Neon e ai file multimediali - No, i file multimediali NON vengono salvati nel database. Nel database viene salvato solo il riferimento al file (fileUrl), non il file stesso. I file vengono salvati sul filesystem locale nella cartella uploads. Per Render, questo è un problema perché Render usa un filesystem effimero - i file vengono cancellati ad ogni deploy.
+Per risolvere questo problema, l'utente dovrà usare un servizio di object storage come:
+* AWS S3
+* Cloudflare R2
+* Backblaze B2
+* etc.
+Devo spiegare questo all'utente in italiano.
+Sì, quello è l'hash SHA-256 del file audio!
+Riguardo alla verifica: OpenTimestamps usa la blockchain Bitcoin per ancorare i timestamp. Ci vogliono circa 1-2 ore perché il timestamp venga confermato sulla blockchain. Finché non è confermato, la verifica potrebbe non funzionare completamente. È normale.
+
+Riguardo ai file multimediali e Neon:
+⚠️ IMPORTANTE: I file multimediali NON vengono salvati nel database! Nel database viene salvato solo:
+* Il riferimento al file (fileUrl)
+* L'hash del contenuto (contentHash)
+* I metadati
+I file veri e propri vengono salvati nella cartella uploads/ sul filesystem.
+Problema per Render: Render ha un filesystem "effimero" - i file caricati vengono cancellati ad ogni deploy!
+
+Soluzioni per i file multimediali:
+1. Cloudflare R2 (consigliato, gratis fino a 10GB)
+2. AWS S3
+3. Backblaze B2 (economico)
+Vuoi che configuri un object storage per salvare i file multimediali in modo permanente? Questo è necessario per la produzione su Render.
