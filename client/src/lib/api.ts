@@ -28,6 +28,12 @@ export interface CreateProofPayload {
   auditLog: Array<{ event: string; ts: string }>;
 }
 
+function toISOString(date: Date | string | null | undefined): string {
+  if (!date) return "";
+  if (typeof date === "string") return date;
+  return date.toISOString();
+}
+
 function proofToManifest(proof: Proof): Manifest {
   return {
     proof_id: proof.id,
@@ -45,7 +51,7 @@ function proofToManifest(proof: Proof): Manifest {
       workflow_step: proof.workflowStep || undefined,
     },
     capture: {
-      timestamp_local: proof.timestampLocal.toISOString(),
+      timestamp_local: toISOString(proof.timestampLocal),
       gps: {
         lat: proof.gpsLat ? parseFloat(proof.gpsLat) : 0,
         lng: proof.gpsLng ? parseFloat(proof.gpsLng) : 0,
@@ -61,17 +67,17 @@ function proofToManifest(proof: Proof): Manifest {
     tsa: proof.tsaProvider ? {
       provider: proof.tsaProvider,
       tsa_token: proof.tsaToken || "",
-      tsa_timestamp: proof.tsaTimestamp?.toISOString() || "",
+      tsa_timestamp: toISOString(proof.tsaTimestamp),
     } : undefined,
     storage: proof.wormPath ? {
       worm_path: proof.wormPath,
-      retention_until: proof.retentionUntil?.toISOString() || "",
+      retention_until: toISOString(proof.retentionUntil),
     } : undefined,
     blockchain_anchor: proof.merkleRoot ? {
       merkle_root: proof.merkleRoot,
       txid: proof.txid || "",
       chain: proof.chain || "",
-      anchored_at: proof.anchoredAt?.toISOString() || "",
+      anchored_at: toISOString(proof.anchoredAt),
     } : undefined,
     integrity_checks: proof.integrityScore ? {
       deepfake_detected: proof.deepfakeDetected || false,
@@ -79,7 +85,7 @@ function proofToManifest(proof: Proof): Manifest {
       score: parseFloat(proof.integrityScore),
     } : undefined,
     audit: {
-      created_at: proof.createdAt.toISOString(),
+      created_at: toISOString(proof.createdAt),
       server_signature: proof.serverSignature || undefined,
       log_chain: (proof.auditLog as Array<{ event: string; ts: string }>) || [],
     },
