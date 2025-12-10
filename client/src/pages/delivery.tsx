@@ -702,11 +702,11 @@ export default function DeliveryCapture() {
             <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
               <div className="flex items-center gap-2 text-green-700 font-medium mb-2">
                 <ShieldCheck className="h-5 w-5" />
-                Certificazione RFC 3161
+                Certificazione OpenTimestamps (Bitcoin)
               </div>
               <p className="text-sm text-green-600">
-                Cliccando "Certifica", verrà richiesta una marca temporale qualificata 
-                al server TSA FreeTSA.org conforme allo standard RFC 3161.
+                Cliccando "Certifica", verrà richiesta una marca temporale 
+                ancorata alla blockchain Bitcoin tramite OpenTimestamps.org.
               </p>
             </div>
 
@@ -758,7 +758,7 @@ export default function DeliveryCapture() {
                 </div>
                 <div className="flex items-center gap-2 animate-pulse text-primary">
                   <Loader2 className="h-3 w-3 animate-spin" /> 
-                  Richiesta TSA FreeTSA.org...
+                  Richiesta OpenTimestamps (Bitcoin)...
                 </div>
               </div>
             </div>
@@ -775,7 +775,7 @@ export default function DeliveryCapture() {
               </div>
               <h3 className="text-2xl font-bold">Consegna Certificata</h3>
               <p className="text-muted-foreground max-w-md">
-                La prova di consegna è stata acquisita, hashata e certificata con marca temporale RFC 3161.
+                La prova di consegna è stata acquisita, hashata e certificata con OpenTimestamps (Bitcoin blockchain).
               </p>
               
               <div className="bg-muted p-4 rounded-lg font-mono text-sm w-full max-w-md">
