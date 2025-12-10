@@ -1,0 +1,237 @@
+PROMPT DA INCOLLARE IN REPLIT / CLAUDE
+
+Titolo:
+🚀 WitnessChain – Core Platform + Modular System + 2 Vertical Apps (Delivery + Maintenance)
+
+Prompt:
+
+Voglio che tu sviluppi l’architettura iniziale completa della piattaforma WitnessChain – The Digital Witness, implementata in modo modulare così che nuovi settori possano essere aggiunti in futuro senza modificare il core.
+
+1. Stack Tecnologico
+
+Backend: Node.js (Express + TypeScript)
+
+DB: PostgreSQL
+
+Storage: S3-compatible (min.io)
+
+Frontend Dashboard: React + Vite + TypeScript
+
+Mobile App: React Native
+
+Certificazione:
+
+Hash SHA-256
+
+Stub API per Timestamp eIDAS (RFC 3161)
+
+Storage WORM
+
+Blockchain anchor (stub)
+
+Security: JWT, RBAC, Audit Log immutabile
+
+2. Crea il Core della Piattaforma
+
+Include:
+
+Sistema utenti e ruoli (Admin, Worker, Manager)
+
+Licenze per azienda
+
+API per:
+
+Creazione acquisizioni (foto/video/audio/doc)
+
+Calcolo hash
+
+Invio a TSA (stub)
+
+Generazione PDF forense
+
+Verifica pubblica acquisizione tramite hash
+
+Modulo Audit immutabile (append-only)
+
+Modulo QR dinamico (es. stato operatore o stato consegna)
+
+3. Crea il “Motore Modulare dei Settori”
+
+Voglio un sistema plugin-based con:
+
+/modules/<settore>/config.json
+
+/modules/<settore>/flow.ts
+
+/modules/<settore>/ui/
+
+Ogni modulo deve includere:
+
+Campi richiesti
+
+Checklist
+
+Validazioni
+
+Template del PDF
+
+Icona e nome modulo
+
+Il backend deve caricare automaticamente tutti i moduli presenti nella cartella modules/.
+
+4. IMPLEMENTA SOLO 2 SETTORI ORA
+MODULO 1 — WitnessChain DELIVERY
+
+Per corrieri e spedizionieri.
+
+Flusso operativo:
+
+Foto pacco
+
+Scansione QR destinatario
+
+Firma cliente
+
+GPS
+
+Timestamp
+
+Generazione PDF
+
+Campi:
+
+ID spedizione
+
+nome destinatario
+
+foto prima/dopo
+
+firma
+
+note consegna
+
+UI: semplice, 1 schermata per step.
+
+MODULO 2 — WitnessChain MAINTENANCE
+
+Per manutentori impianti.
+
+Flusso operativo:
+
+Foto stato iniziale
+
+Scansione ID impianto
+
+Materiali utilizzati
+
+Foto stato finale
+
+Firma cliente
+
+PDF forense
+
+Campi:
+
+ID impianto
+
+tipo intervento
+
+materiali usati
+
+foto prima/dopo
+
+5. Crea placeholders (vuoti) per 10 moduli futuri
+
+Crea solo la struttura:
+
+HACCP
+
+SAFE OPS
+
+PROPERTY
+
+FIELD SERVICE
+
+TECH INSPECTOR
+
+AUDIT360
+
+HEALTH DEVICES
+
+CONTRACTOR OPS
+
+REAL ESTATE DOCS
+
+LOGISTICS PRO
+
+Ogni modulo deve avere solo un file config.json con nome e descrizione.
+
+6. Output richiesto
+
+Codice completo backend
+
+Codice completo dashboard
+
+Codice completo app mobile base
+
+Implementazione completa dei due moduli (Delivery + Maintenance)
+
+Struttura modulare pronta per aggiungere altri settori
+
+Documentazione README.md su:
+
+come aggiungere un nuovo settore
+
+come attivarlo
+
+come pubblicarlo nell’app
+
+7. Importantissimo
+
+Il codice deve essere reale, funzionante, avviabile su Replit.
+
+Evita pseudo-codice.
+
+Tutto deve compilare correttamente.
+
+Scrivi directory structure completa.
+
+Crea mock per TSA e Blockchain (in futuro sostituisco io).
+
+Prepara già routing API per /modules/...
+
+Genera ora il codice completo e la struttura del progetto.
+
+Voglio una base solida, estendibile, professionale.
+Fai come se questo dovesse diventare un SaaS da milioni.
+
+🔥 Risultato
+
+Claude/Replit ti genereranno:
+
+Backend completo
+
+Dashboard completa
+
+Mobile app base
+
+Moduli Delivery + Maintenance pronti
+
+Altri moduli preparati
+
+Sistema plugin modulare perfetto
+
+Documentazione chiara
+
+E da lì puoi costruire un settore alla volta, quando ti serve.
+
+Vuoi che ti preparo anche:
+
+✅ Logo WitnessChain per ogni settore?
+✅ Color palette dedicata?
+✅ Naming alternativo dei moduli?
+✅ Pitch deck per investitori?
+
+Dimmi tu e parto.
+
+ChatGPT può commettere errori. Assicurati di verificare le informazioni importanti. Vedi Preferenze sui cookie.
