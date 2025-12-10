@@ -1,4 +1,5 @@
 import { type Express } from "express";
+import express from "express";
 import { createServer as createViteServer, createLogger } from "vite";
 import { type Server } from "http";
 import viteConfig from "../vite.config";
@@ -30,6 +31,11 @@ export async function setupVite(server: Server, app: Express) {
   });
 
   app.use(vite.middlewares);
+
+  const uploadsPath = path.resolve(process.cwd(), "uploads");
+  if (fs.existsSync(uploadsPath)) {
+    app.use("/uploads", express.static(uploadsPath));
+  }
 
   app.use("*", async (req, res, next) => {
     const url = req.originalUrl;
