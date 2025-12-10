@@ -72,7 +72,7 @@ export async function registerRoutes(
 
       const proofData = JSON.parse(req.body.data || '{}');
       
-      const proofId = randomUUID();
+      const proofId = (req as any).generatedProofId || randomUUID();
       
       let tsaTimestamp: string | null = null;
       let tsaToken: string | null = null;
