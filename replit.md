@@ -36,7 +36,7 @@ The frontend is a single-page application organized around key workflows:
 Key backend modules:
 - `routes.ts`: API endpoint definitions for proof CRUD
 - `storage.ts`: Database abstraction layer using repository pattern
-- `tsa.ts`: Timestamp Authority integration (FreeTSA.org)
+- `tsa.ts`: Timestamp Authority integration (OpenTimestamps.org)
 - `db.ts`: Database connection management
 
 ### Data Storage
@@ -81,9 +81,10 @@ Core data model:
 - **Drizzle ORM**: Type-safe database queries and schema management
 
 ### Timestamp Authority
-- **FreeTSA.org**: Free TSA service for RFC 3161 timestamps
-- Integration in `server/tsa.ts` sends hash and receives signed timestamp token
-- Future: eIDAS-qualified TSA providers for legal compliance
+- **OpenTimestamps.org**: Decentralized timestamping using Bitcoin blockchain
+- Integration in `server/tsa.ts` creates OpenTimestamps proofs anchored to Bitcoin
+- Timestamps are initially "pending" and become verified after Bitcoin confirmation (1-2 hours)
+- Supports upgrade and verification of existing timestamps
 
 ### Planned Integrations (from documentation)
 - **WORM Storage**: S3-compatible with immutability policies
