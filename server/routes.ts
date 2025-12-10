@@ -7,27 +7,10 @@ import { insertProofSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { requestTimestamp, verifyTimestamp, upgradeTimestamp, getTimestampInfo } from "./tsa";
-import path from "path";
-import fs from "fs";
-
-const uploadsDir = path.join(process.cwd(), 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir, { recursive: true });
-}
-
-const diskStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadsDir);
-  },
-  filename: (req, file, cb) => {
-    const proofId = randomUUID();
-    (req as any).generatedProofId = proofId;
-    cb(null, `${proofId}_${file.originalname}`);
-  }
-});
+import { uploadToR2, getSignedDownloadUrl, getR2Key } from "./r2";
 
 const upload = multer({
-  storage: diskStorage,
+  storage: multer.memoryStorage(),
   limits: {
     fileSize: 50 * 1024 * 1024,
   },
@@ -72,7 +55,15 @@ export async function registerRoutes(
 
       const proofData = JSON.parse(req.body.data || '{}');
       
-      const proofId = (req as any).generatedProofId || randomUUID();
+      const proofId = randomUUID();
+      
+      const r2Key = getR2Key(proofId, req.file.originalname);
+      const uploadResult = await uploadToR2(r2Key, req.file.buffer, req.file.mimetype);
+      
+      if (!uploadResult.success) {
+        console.error('R2 upload failed:', uploadResult.error);
+        return res.status(500).json({ error: 'Failed to upload file to storage' });
+      }
       
       let tsaTimestamp: string | null = null;
       let tsaToken: string | null = null;
@@ -98,7 +89,7 @@ export async function registerRoutes(
         id: proofId,
         fileName: req.file.originalname,
         fileType: req.file.mimetype,
-        fileUrl: `/uploads/${proofId}_${req.file.originalname}`,
+        fileUrl: r2Key,
         tsaTimestamp: tsaTimestamp ? new Date(tsaTimestamp) : null,
         tsaToken,
         tsaProvider,
@@ -290,6 +281,29 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Error getting TSA info:', error);
       res.status(500).json({ error: 'Failed to get timestamp info' });
+    }
+  });
+
+  app.get('/api/files/:proofId', async (req, res) => {
+    try {
+      const { proofId } = req.params;
+      
+      const proof = await storage.getProofById(proofId);
+      
+      if (!proof) {
+        return res.status(404).json({ error: 'Proof not found' });
+      }
+      
+      if (!proof.fileUrl) {
+        return res.status(404).json({ error: 'File not found' });
+      }
+      
+      const signedUrl = await getSignedDownloadUrl(proof.fileUrl);
+      
+      res.redirect(signedUrl);
+    } catch (error) {
+      console.error('Error getting file:', error);
+      res.status(500).json({ error: 'Failed to get file' });
     }
   });
 
