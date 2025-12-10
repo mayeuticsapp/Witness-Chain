@@ -21,6 +21,7 @@ export interface IStorage {
     offset?: number;
   }): Promise<Proof[]>;
   updateProofStatus(id: string, status: string): Promise<Proof | undefined>;
+  updateProofTsaToken(id: string, tsaToken: string): Promise<Proof | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -97,6 +98,15 @@ export class DbStorage implements IStorage {
     const result = await db
       .update(proofs)
       .set({ status })
+      .where(eq(proofs.id, id))
+      .returning();
+    return result[0];
+  }
+
+  async updateProofTsaToken(id: string, tsaToken: string): Promise<Proof | undefined> {
+    const result = await db
+      .update(proofs)
+      .set({ tsaToken })
       .where(eq(proofs.id, id))
       .returning();
     return result[0];

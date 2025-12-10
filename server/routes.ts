@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 import { insertProofSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
-import { requestTimestamp } from "./tsa";
+import { requestTimestamp, verifyTimestamp, upgradeTimestamp, getTimestampInfo } from "./tsa";
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -178,21 +178,100 @@ export async function registerRoutes(
         return res.status(404).json({ error: 'Proof not found' });
       }
       
-      const isValid = proof.tsaToken && proof.tsaTimestamp;
+      if (!proof.tsaToken || !proof.contentHash) {
+        return res.json({
+          valid: false,
+          verified: false,
+          proofId: proof.id,
+          message: 'No OpenTimestamps proof found for this document'
+        });
+      }
+      
+      const verifyResult = await verifyTimestamp(proof.tsaToken, proof.contentHash);
       
       res.json({
-        valid: !!isValid,
+        valid: verifyResult.valid,
+        verified: verifyResult.verified,
         proofId: proof.id,
         contentHash: proof.contentHash,
         tsaTimestamp: proof.tsaTimestamp,
         tsaProvider: proof.tsaProvider,
-        message: isValid 
-          ? 'Timestamp is valid and verified' 
-          : 'No TSA timestamp found for this proof'
+        info: verifyResult.info,
+        message: verifyResult.verified 
+          ? 'Timestamp verified on Bitcoin blockchain' 
+          : verifyResult.valid 
+            ? 'Timestamp pending Bitcoin confirmation'
+            : verifyResult.error || 'Verification failed'
       });
     } catch (error) {
       console.error('Error verifying TSA:', error);
       res.status(500).json({ error: 'Failed to verify timestamp' });
+    }
+  });
+
+  app.post('/api/tsa/upgrade', async (req, res) => {
+    try {
+      const { proofId } = req.body;
+      
+      if (!proofId) {
+        return res.status(400).json({ error: 'Proof ID is required' });
+      }
+      
+      const proof = await storage.getProofById(proofId);
+      
+      if (!proof) {
+        return res.status(404).json({ error: 'Proof not found' });
+      }
+      
+      if (!proof.tsaToken) {
+        return res.status(400).json({ error: 'No timestamp token to upgrade' });
+      }
+      
+      const upgradeResult = await upgradeTimestamp(proof.tsaToken);
+      
+      if (upgradeResult.success && upgradeResult.token !== proof.tsaToken) {
+        await storage.updateProofTsaToken(proofId, upgradeResult.token!);
+      }
+      
+      res.json({
+        success: upgradeResult.success,
+        pending: upgradeResult.pending,
+        proofId: proof.id,
+        message: upgradeResult.pending 
+          ? 'Timestamp still pending Bitcoin confirmation (usually takes 1-2 hours)'
+          : 'Timestamp upgraded with Bitcoin attestation'
+      });
+    } catch (error) {
+      console.error('Error upgrading TSA:', error);
+      res.status(500).json({ error: 'Failed to upgrade timestamp' });
+    }
+  });
+
+  app.get('/api/tsa/info/:proofId', async (req, res) => {
+    try {
+      const { proofId } = req.params;
+      
+      const proof = await storage.getProofById(proofId);
+      
+      if (!proof) {
+        return res.status(404).json({ error: 'Proof not found' });
+      }
+      
+      if (!proof.tsaToken) {
+        return res.status(400).json({ error: 'No timestamp token found' });
+      }
+      
+      const info = getTimestampInfo(proof.tsaToken);
+      
+      res.json({
+        proofId: proof.id,
+        info: info,
+        provider: proof.tsaProvider,
+        timestamp: proof.tsaTimestamp
+      });
+    } catch (error) {
+      console.error('Error getting TSA info:', error);
+      res.status(500).json({ error: 'Failed to get timestamp info' });
     }
   });
 
