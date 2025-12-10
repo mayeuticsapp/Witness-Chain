@@ -1,4 +1,4 @@
-import { createHash } from 'crypto';
+import OpenTimestamps from 'opentimestamps';
 
 interface TSAResponse {
   success: boolean;
@@ -6,108 +6,132 @@ interface TSAResponse {
   token?: string;
   provider?: string;
   error?: string;
+  pending?: boolean;
 }
 
 export async function requestTimestamp(contentHash: string): Promise<TSAResponse> {
   try {
     const hashBuffer = Buffer.from(contentHash, 'hex');
     
-    const tsRequest = createTSRequest(hashBuffer);
+    const detached = OpenTimestamps.DetachedTimestampFile.fromHash(
+      new OpenTimestamps.Ops.OpSHA256(),
+      hashBuffer
+    );
     
-    const response = await fetch('https://freetsa.org/tsr', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/timestamp-query',
-      },
-      body: tsRequest,
-    });
+    await OpenTimestamps.stamp(detached);
     
-    if (!response.ok) {
-      throw new Error(`TSA request failed: ${response.status}`);
-    }
-    
-    const tsResponse = await response.arrayBuffer();
-    const tsToken = Buffer.from(tsResponse).toString('base64');
+    const otsProof = detached.serializeToBytes();
+    const otsToken = Buffer.from(otsProof).toString('base64');
     
     return {
       success: true,
       timestamp: new Date().toISOString(),
-      token: tsToken,
-      provider: 'FreeTSA.org',
+      token: otsToken,
+      provider: 'OpenTimestamps.org (Bitcoin)',
+      pending: true,
     };
     
   } catch (error) {
-    console.error('TSA Error:', error);
+    console.error('OpenTimestamps Error:', error);
     
     return {
       success: false,
       timestamp: new Date().toISOString(),
-      provider: 'FreeTSA.org',
-      error: error instanceof Error ? error.message : 'Unknown TSA error',
+      provider: 'OpenTimestamps.org',
+      error: error instanceof Error ? error.message : 'Unknown OpenTimestamps error',
     };
   }
 }
 
-function createTSRequest(hashBuffer: Buffer): Buffer {
-  const version = Buffer.from([0x02, 0x01, 0x01]);
-  
-  const sha256OID = Buffer.from([
-    0x30, 0x0d,
-    0x06, 0x09, 0x60, 0x86, 0x48, 0x01, 0x65, 0x03, 0x04, 0x02, 0x01,
-    0x05, 0x00
-  ]);
-  
-  const hashOctetString = Buffer.concat([
-    Buffer.from([0x04, hashBuffer.length]),
-    hashBuffer
-  ]);
-  
-  const messageImprint = Buffer.concat([
-    Buffer.from([0x30, sha256OID.length + hashOctetString.length]),
-    sha256OID,
-    hashOctetString
-  ]);
-  
-  const certReq = Buffer.from([0x01, 0x01, 0xff]);
-  
-  const innerContent = Buffer.concat([version, messageImprint, certReq]);
-  
-  const tsRequest = Buffer.concat([
-    Buffer.from([0x30, innerContent.length]),
-    innerContent
-  ]);
-  
-  return tsRequest;
+export async function upgradeTimestamp(otsToken: string): Promise<TSAResponse> {
+  try {
+    const otsBytes = Buffer.from(otsToken, 'base64');
+    const detached = OpenTimestamps.DetachedTimestampFile.deserialize(otsBytes);
+    
+    const changed = await OpenTimestamps.upgrade(detached);
+    
+    if (changed) {
+      const upgradedOts = detached.serializeToBytes();
+      const upgradedToken = Buffer.from(upgradedOts).toString('base64');
+      
+      return {
+        success: true,
+        timestamp: new Date().toISOString(),
+        token: upgradedToken,
+        provider: 'OpenTimestamps.org (Bitcoin)',
+        pending: false,
+      };
+    }
+    
+    return {
+      success: true,
+      timestamp: new Date().toISOString(),
+      token: otsToken,
+      provider: 'OpenTimestamps.org (Bitcoin)',
+      pending: true,
+    };
+    
+  } catch (error) {
+    console.error('OpenTimestamps Upgrade Error:', error);
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown upgrade error',
+    };
+  }
 }
 
-export async function requestTimestampSimulated(contentHash: string): Promise<TSAResponse> {
-  await new Promise(resolve => setTimeout(resolve, 500));
-  
-  const mockToken = Buffer.from(JSON.stringify({
-    version: 1,
-    policy: "1.2.3.4.1",
-    messageImprint: {
-      hashAlgorithm: "SHA-256",
-      hashedMessage: contentHash
-    },
-    serialNumber: Date.now().toString(),
-    genTime: new Date().toISOString(),
-    accuracy: {
-      seconds: 1,
-      millis: 0,
-      micros: 0
-    },
-    ordering: false,
-    nonce: Math.random().toString(36).substring(7),
-    tsa: {
-      directoryName: "CN=FreeTSA, O=FreeTSA.org, C=WW"
+export async function verifyTimestamp(otsToken: string, contentHash: string): Promise<{
+  valid: boolean;
+  verified: boolean;
+  bitcoinBlockHeight?: number;
+  bitcoinBlockTime?: string;
+  info?: string;
+  error?: string;
+}> {
+  try {
+    const otsBytes = Buffer.from(otsToken, 'base64');
+    const detached = OpenTimestamps.DetachedTimestampFile.deserialize(otsBytes);
+    
+    const info = OpenTimestamps.info(detached);
+    
+    const storedHash = detached.fileDigest().toString('hex');
+    const hashMatch = storedHash === contentHash;
+    
+    if (!hashMatch) {
+      return {
+        valid: false,
+        verified: false,
+        error: 'Hash mismatch: content has been modified',
+      };
     }
-  })).toString('base64');
-  
-  return {
-    success: true,
-    timestamp: new Date().toISOString(),
-    token: mockToken,
-    provider: 'FreeTSA.org (Simulated)',
-  };
+    
+    const hasBitcoinAttestation = info.includes('verify BitcoinBlockHeaderAttestation') || 
+                                   info.includes('Bitcoin block');
+    
+    return {
+      valid: true,
+      verified: hasBitcoinAttestation,
+      info: info,
+    };
+    
+  } catch (error) {
+    console.error('OpenTimestamps Verify Error:', error);
+    
+    return {
+      valid: false,
+      verified: false,
+      error: error instanceof Error ? error.message : 'Unknown verify error',
+    };
+  }
+}
+
+export function getTimestampInfo(otsToken: string): string {
+  try {
+    const otsBytes = Buffer.from(otsToken, 'base64');
+    const detached = OpenTimestamps.DetachedTimestampFile.deserialize(otsBytes);
+    return OpenTimestamps.info(detached);
+  } catch (error) {
+    return 'Unable to parse timestamp info';
+  }
 }
