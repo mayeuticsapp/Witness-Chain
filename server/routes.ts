@@ -6,19 +6,37 @@ import { randomUUID } from "crypto";
 import { insertProofSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
+import { requestTimestamp } from "./tsa";
 
-// Configure multer for file uploads
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 50 * 1024 * 1024,
   },
   fileFilter: (req, file, cb) => {
-    // Accept only images
-    if (file.mimetype.startsWith('image/')) {
+    const allowedTypes = [
+      'image/jpeg',
+      'image/png',
+      'image/gif',
+      'image/webp',
+      'video/webm',
+      'video/mp4',
+      'video/quicktime',
+      'audio/webm',
+      'audio/mp3',
+      'audio/mpeg',
+      'audio/wav',
+      'audio/ogg',
+      'application/pdf',
+    ];
+    
+    if (allowedTypes.includes(file.mimetype) || 
+        file.mimetype.startsWith('image/') || 
+        file.mimetype.startsWith('video/') || 
+        file.mimetype.startsWith('audio/')) {
       cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed'));
+      cb(new Error(`File type ${file.mimetype} not allowed`));
     }
   },
 });
@@ -28,33 +46,51 @@ export async function registerRoutes(
   app: Express
 ): Promise<Server> {
   
-  // POST /api/proofs - Create new proof with file upload
   app.post('/api/proofs', upload.single('file'), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ error: 'File is required' });
       }
 
-      // Parse and validate the proof data
       const proofData = JSON.parse(req.body.data || '{}');
       
-      // Generate UUID for the proof
       const proofId = randomUUID();
       
-      // Prepare proof object
+      let tsaTimestamp: string | null = null;
+      let tsaToken: string | null = null;
+      let tsaProvider: string | null = null;
+      
+      if (proofData.requestTSA && proofData.contentHash) {
+        console.log('Requesting TSA timestamp for hash:', proofData.contentHash.substring(0, 16) + '...');
+        
+        const tsaResult = await requestTimestamp(proofData.contentHash);
+        
+        if (tsaResult.success) {
+          tsaTimestamp = tsaResult.timestamp || null;
+          tsaToken = tsaResult.token || null;
+          tsaProvider = tsaResult.provider || null;
+          console.log('TSA timestamp received:', tsaTimestamp);
+        } else {
+          console.warn('TSA request failed:', tsaResult.error);
+        }
+      }
+      
       const proof = {
         ...proofData,
         id: proofId,
         fileName: req.file.originalname,
         fileType: req.file.mimetype,
-        // In production, upload to storage and get URL
         fileUrl: `/uploads/${proofId}_${req.file.originalname}`,
+        tsaTimestamp: tsaTimestamp ? new Date(tsaTimestamp) : null,
+        tsaToken,
+        tsaProvider,
+        status: tsaTimestamp ? 'certified' : 'captured',
       };
 
-      // Validate with Zod schema
+      delete proof.requestTSA;
+
       const validatedProof = insertProofSchema.parse(proof);
       
-      // Create proof in database
       const createdProof = await storage.createProof(validatedProof);
       
       res.status(201).json(createdProof);
@@ -68,7 +104,6 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/proofs/:id - Get proof by ID
   app.get('/api/proofs/:id', async (req, res) => {
     try {
       const { id } = req.params;
@@ -85,7 +120,6 @@ export async function registerRoutes(
     }
   });
 
-  // GET /api/proofs - Search/list proofs with filters
   app.get('/api/proofs', async (req, res) => {
     try {
       const { userId, site, client, status, limit, offset } = req.query;
@@ -108,7 +142,6 @@ export async function registerRoutes(
     }
   });
 
-  // PATCH /api/proofs/:id/status - Update proof status
   app.patch('/api/proofs/:id/status', async (req, res) => {
     try {
       const { id } = req.params;
@@ -128,6 +161,38 @@ export async function registerRoutes(
     } catch (error) {
       console.error('Error updating proof status:', error);
       res.status(500).json({ error: 'Failed to update proof status' });
+    }
+  });
+
+  app.post('/api/tsa/verify', async (req, res) => {
+    try {
+      const { proofId } = req.body;
+      
+      if (!proofId) {
+        return res.status(400).json({ error: 'Proof ID is required' });
+      }
+      
+      const proof = await storage.getProofById(proofId);
+      
+      if (!proof) {
+        return res.status(404).json({ error: 'Proof not found' });
+      }
+      
+      const isValid = proof.tsaToken && proof.tsaTimestamp;
+      
+      res.json({
+        valid: !!isValid,
+        proofId: proof.id,
+        contentHash: proof.contentHash,
+        tsaTimestamp: proof.tsaTimestamp,
+        tsaProvider: proof.tsaProvider,
+        message: isValid 
+          ? 'Timestamp is valid and verified' 
+          : 'No TSA timestamp found for this proof'
+      });
+    } catch (error) {
+      console.error('Error verifying TSA:', error);
+      res.status(500).json({ error: 'Failed to verify timestamp' });
     }
   });
 

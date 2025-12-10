@@ -9,6 +9,7 @@ import Dashboard from "@/pages/dashboard";
 import Capture from "@/pages/capture";
 import Verify from "@/pages/verify";
 import ProofDetail from "@/pages/proof-detail";
+import DeliveryCapture from "@/pages/delivery";
 
 function Router() {
   return (
@@ -16,6 +17,7 @@ function Router() {
       <Switch>
         <Route path="/" component={Dashboard} />
         <Route path="/capture" component={Capture} />
+        <Route path="/delivery" component={DeliveryCapture} />
         <Route path="/verify" component={Verify} />
         <Route path="/proofs/:id" component={ProofDetail} />
         <Route component={NotFound} />
