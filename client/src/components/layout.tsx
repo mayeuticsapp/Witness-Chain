@@ -8,7 +8,8 @@ import {
   LogOut, 
   Menu, 
   X,
-  Search
+  Search,
+  Truck
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ export default function Layout({ children }: LayoutProps) {
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Nuova Acquisizione", href: "/capture", icon: Camera },
+    { name: "Consegna Corriere", href: "/delivery", icon: Truck },
     { name: "Verifica Pubblica", href: "/verify", icon: Search },
   ];
 
@@ -64,7 +66,7 @@ export default function Layout({ children }: LayoutProps) {
             const Icon = item.icon;
             const isActive = location === item.href;
             return (
-              <Link key={item.name} href={item.href}>
+              <Link key={item.name} href={item.href} data-testid={`link-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}>
                 <div className={cn(
                   "flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors cursor-pointer",
                   isActive 
