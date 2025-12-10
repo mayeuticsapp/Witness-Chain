@@ -71,7 +71,14 @@ export const proofs = pgTable("proofs", {
   auditLog: jsonb("audit_log").$type<Array<{ event: string; ts: string }>>().notNull().default(sql`'[]'::jsonb`),
 });
 
-export const insertProofSchema = createInsertSchema(proofs).omit({
+const dateOrString = z.union([z.date(), z.string().transform((val) => new Date(val))]);
+
+export const insertProofSchema = createInsertSchema(proofs, {
+  timestampLocal: dateOrString,
+  tsaTimestamp: dateOrString.optional().nullable(),
+  retentionUntil: dateOrString.optional().nullable(),
+  anchoredAt: dateOrString.optional().nullable(),
+}).omit({
   createdAt: true,
 });
 
