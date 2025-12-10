@@ -7,9 +7,27 @@ import { insertProofSchema } from "@shared/schema";
 import { z } from "zod";
 import { fromZodError } from "zod-validation-error";
 import { requestTimestamp, verifyTimestamp, upgradeTimestamp, getTimestampInfo } from "./tsa";
+import path from "path";
+import fs from "fs";
+
+const uploadsDir = path.join(process.cwd(), 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const diskStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadsDir);
+  },
+  filename: (req, file, cb) => {
+    const proofId = randomUUID();
+    (req as any).generatedProofId = proofId;
+    cb(null, `${proofId}_${file.originalname}`);
+  }
+});
 
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: diskStorage,
   limits: {
     fileSize: 50 * 1024 * 1024,
   },

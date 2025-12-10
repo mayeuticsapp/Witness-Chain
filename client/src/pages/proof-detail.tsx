@@ -153,19 +153,48 @@ export default function ProofDetail() {
         {/* Main Evidence Card */}
         <div className="md:col-span-2 space-y-6">
           <Card className="overflow-hidden glass-panel">
-            <div className="aspect-video bg-black/5 flex items-center justify-center overflow-hidden relative group">
-              {proof.capture.preview_url ? (
-                <img 
-                  src={proof.capture.preview_url} 
-                  alt="Evidence" 
-                  className="w-full h-full object-contain"
-                />
+            <div className="bg-black/5 flex items-center justify-center overflow-hidden relative">
+              {proof.capture.file_type.startsWith('audio/') ? (
+                <div className="w-full p-8 flex flex-col items-center gap-4">
+                  <div className="h-24 w-24 rounded-full bg-primary/10 flex items-center justify-center">
+                    <FileCheck className="h-12 w-12 text-primary" />
+                  </div>
+                  <p className="text-sm text-muted-foreground">{proof.capture.file_name}</p>
+                  <audio 
+                    controls 
+                    className="w-full max-w-md"
+                    data-testid="audio-player"
+                  >
+                    <source src={proof.capture.preview_url} type={proof.capture.file_type} />
+                    Il tuo browser non supporta l'elemento audio.
+                  </audio>
+                </div>
+              ) : proof.capture.file_type.startsWith('video/') ? (
+                <video 
+                  controls 
+                  className="w-full aspect-video"
+                  data-testid="video-player"
+                >
+                  <source src={proof.capture.preview_url} type={proof.capture.file_type} />
+                  Il tuo browser non supporta l'elemento video.
+                </video>
+              ) : proof.capture.file_type.startsWith('image/') && proof.capture.preview_url ? (
+                <div className="aspect-video w-full relative group">
+                  <img 
+                    src={proof.capture.preview_url} 
+                    alt="Evidence" 
+                    className="w-full h-full object-contain"
+                  />
+                  <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                    <Button variant="secondary">Visualizza Originale</Button>
+                  </div>
+                </div>
               ) : (
-                <FileCheck className="h-24 w-24 text-muted-foreground/20" />
+                <div className="aspect-video w-full flex flex-col items-center justify-center gap-2">
+                  <FileCheck className="h-24 w-24 text-muted-foreground/20" />
+                  <p className="text-sm text-muted-foreground">{proof.capture.file_name}</p>
+                </div>
               )}
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                <Button variant="secondary">Visualizza Originale</Button>
-              </div>
             </div>
             <CardHeader>
               <div className="flex items-start justify-between">
